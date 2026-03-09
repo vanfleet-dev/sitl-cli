@@ -52,9 +52,32 @@ else
     echo "MAVLink: tcp:localhost:5760"
     echo ""
     
-    exec ./Tools/autotest/sim_vehicle.py \
-        -v "$SITL_VEHICLE" \
-        -f "$SITL_FRAME" \
-        --no-mavproxy \
-        --location "$SITL_LOCATION"
+    # Check if binary exists and run directly to avoid waf rebuild
+    # Convert ArduPlane -> arduplane, ArduCopter -> arducopter, etc.
+    VEHICLE_LOWER=$(echo "$SITL_VEHICLE" | tr '[:upper:]' '[:lower:]')
+    # Remove "ardu" prefix if present since binaries are named arducopter, arduplane, etc.
+    BINARY_NAME=$(echo "$VEHICLE_LOWER" | sed 's/^ardu//')
+    BINARY="/root/ardupilot/build/sitl/bin/ardu$BINARY_NAME"
+    
+    if [ -f "$BINARY" ]; then
+        echo "Using pre-built binary: $BINARY"
+        # Parse location for --home parameter
+        if [ -f "/root/ardupilot/Tools/autotest/locations.txt" ]; then
+            HOME_COORDS=$(grep "^$SITL_LOCATION=" /root/ardupilot/Tools/autotest/locations.txt | cut -d'=' -f2 | cut -d'#' -f1)
+            if [ -n "$HOME_COORDS" ]; then
+                exec "$BINARY" -S --model "$SITL_FRAME" --home "$HOME_COORDS"
+            else
+                exec "$BINARY" -S --model "$SITL_FRAME"
+            fi
+        else
+            exec "$BINARY" -S --model "$SITL_FRAME"
+        fi
+    else
+        echo "Binary not found, falling back to sim_vehicle.py build..."
+        exec ./Tools/autotest/sim_vehicle.py \
+            -v "$SITL_VEHICLE" \
+            -f "$SITL_FRAME" \
+            --no-mavproxy \
+            --location "$SITL_LOCATION"
+    fi
 fi
