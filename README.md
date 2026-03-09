@@ -60,29 +60,165 @@ mavproxy.py --master=tcp:localhost:5760
 
 ## Installation
 
-The `install.sh` script will:
-- Detect your platform (macOS or Linux)
-- Check that Docker is installed and running
-- Create `~/bin` directory if it doesn't exist
-- Install the `sitl` command to your PATH
-- Set executable permissions
-- Pull the Docker image
+Choose your installation method based on your needs and platform.
 
-**Manual Installation:**
+### Method 1: Docker Hub (Recommended)
 
-If you prefer manual setup:
+Pull the pre-built image from Docker Hub. This is the fastest method.
+
+#### macOS Setup (Docker Hub)
 
 ```bash
-# Ensure ~/bin exists and is in PATH
-mkdir -p ~/bin
+# 1. Install Docker Desktop
+# Download from: https://docker.com/products/docker-desktop/
 
-# Copy the script
+# 2. Clone the repository
+git clone https://github.com/vanfleet-dev/sitl-cli.git
+cd sitl-cli
+
+# 3. Pull the Docker image
+docker pull vanfleetdev/sitl-ardupilot:4.6.3
+
+# 4. Install the CLI
+mkdir -p ~/bin
 cp sitl ~/bin/sitl
 chmod +x ~/bin/sitl
 
-# Pull the Docker image
-docker pull vanfleetdev/sitl-ardupilot:4.6.3
+# 5. Copy supporting files to ~/bin
+cp docker-compose.yml ~/bin/
+cp docker-entrypoint.sh ~/bin/
+
+# 6. Ensure ~/bin is in your PATH
+export PATH="$HOME/bin:$PATH"
+# Add the above line to ~/.zshrc or ~/.bashrc
+
+# 7. Test it
+sitl plane
 ```
+
+#### Linux Setup (Docker Hub)
+
+```bash
+# 1. Install Docker
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose
+sudo usermod -aG docker $USER
+newgrp docker  # or logout and login
+
+# 2. Clone the repository
+git clone https://github.com/vanfleet-dev/sitl-cli.git
+cd sitl-cli
+
+# 3. Pull the Docker image
+docker pull vanfleetdev/sitl-ardupilot:4.6.3
+
+# 4. Install the CLI
+mkdir -p ~/bin
+cp sitl ~/bin/sitl
+chmod +x ~/bin/sitl
+
+# 5. Copy supporting files to ~/bin
+cp docker-compose.yml ~/bin/
+cp docker-entrypoint.sh ~/bin/
+
+# 6. Ensure ~/bin is in your PATH
+export PATH="$HOME/bin:$PATH"
+# Add the above line to ~/.bashrc
+
+# 7. Test it
+sitl plane
+```
+
+### Method 2: Local Tar File (Offline/Air-Gapped)
+
+Use this method if you have the Docker image tar file (e.g., `sitl-ardupilot-4.6.3.tar`).
+
+#### macOS Setup (Local Tar)
+
+```bash
+# 1. Install Docker Desktop
+# Download from: https://docker.com/products/docker-desktop/
+
+# 2. Clone the repository
+git clone https://github.com/vanfleet-dev/sitl-cli.git
+cd sitl-cli
+
+# 3. Load the Docker image from tar
+# Place sitl-ardupilot-4.6.3.tar in this directory
+docker load -i sitl-ardupilot-4.6.3.tar
+
+# 4. Tag the image
+docker tag sitl-ardupilot:4.6.3 vanfleetdev/sitl-ardupilot:4.6.3
+
+# 5. Install the CLI
+mkdir -p ~/bin
+cp sitl ~/bin/sitl
+chmod +x ~/bin/sitl
+
+# 6. Copy supporting files to ~/bin
+cp docker-compose.yml ~/bin/
+cp docker-entrypoint.sh ~/bin/
+
+# 7. Ensure ~/bin is in your PATH
+export PATH="$HOME/bin:$PATH"
+# Add the above line to ~/.zshrc or ~/.bashrc
+
+# 8. Test it
+sitl plane
+```
+
+#### Linux Setup (Local Tar)
+
+```bash
+# 1. Install Docker
+sudo apt-get update
+sudo apt-get install -y docker.io docker-compose
+sudo usermod -aG docker $USER
+newgrp docker  # or logout and login
+
+# 2. Clone the repository
+git clone https://github.com/vanfleet-dev/sitl-cli.git
+cd sitl-cli
+
+# 3. Load the Docker image from tar
+# Place sitl-ardupilot-4.6.3.tar in this directory
+docker load -i sitl-ardupilot-4.6.3.tar
+
+# 4. Tag the image
+docker tag sitl-ardupilot:4.6.3 vanfleetdev/sitl-ardupilot:4.6.3
+
+# 5. Install the CLI
+mkdir -p ~/bin
+cp sitl ~/bin/sitl
+chmod +x ~/bin/sitl
+
+# 6. Copy supporting files to ~/bin
+cp docker-compose.yml ~/bin/
+cp docker-entrypoint.sh ~/bin/
+
+# 7. Ensure ~/bin is in your PATH
+export PATH="$HOME/bin:$PATH"
+# Add the above line to ~/.bashrc
+
+# 8. Test it
+sitl plane
+```
+
+### Automated Install (Both Methods)
+
+If you have Docker and the image ready (either pulled or loaded), you can use the install script:
+
+```bash
+./install.sh
+```
+
+This will:
+- Check Docker is running
+- Install `sitl` to `~/bin/`
+- Copy necessary files
+- Verify the installation
+
+**Note:** You must have the Docker image ready before running install.sh (either via `docker pull` or `docker load`).
 
 ## Commands
 

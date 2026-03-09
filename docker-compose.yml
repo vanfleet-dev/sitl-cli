@@ -1,6 +1,7 @@
 services:
   sitl:
     image: vanfleetdev/sitl-ardupilot:4.6.3
+    platform: linux/amd64
     container_name: ardupilot-sitl
     ports:
       # TCP port for single vehicle mode

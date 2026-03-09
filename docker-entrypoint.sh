@@ -48,11 +48,13 @@ if [ "$SWARM_MODE" = "true" ] && [ -n "$SWARM_COUNT" ]; then
 else
     echo ""
     echo "Starting Single Vehicle SITL..."
+    echo "Location: $SITL_LOCATION"
     echo "MAVLink: tcp:localhost:5760"
     echo ""
     
     exec ./Tools/autotest/sim_vehicle.py \
         -v "$SITL_VEHICLE" \
         -f "$SITL_FRAME" \
-        --no-mavproxy
+        --no-mavproxy \
+        --location "$SITL_LOCATION"
 fi
