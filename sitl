@@ -7,7 +7,17 @@ set -e
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOCKER_COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
+
+# Try to find docker-compose.yml in multiple locations
+if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
+    DOCKER_COMPOSE_FILE="$SCRIPT_DIR/docker-compose.yml"
+elif [ -f "$HOME/sitl/docker-compose.yml" ]; then
+    DOCKER_COMPOSE_FILE="$HOME/sitl/docker-compose.yml"
+else
+    log_error "Cannot find docker-compose.yml"
+    log_info "Expected locations: $SCRIPT_DIR/docker-compose.yml or $HOME/sitl/docker-compose.yml"
+    exit 1
+fi
 CONTAINER_NAME="ardupilot-sitl"
 
 # Colors for output
@@ -141,7 +151,7 @@ start_sitl() {
         export SITL_LOCATION="${SITL_LOCATION:-CMAC}"
         
         # Start container
-        docker compose -f "$DOCKER_COMPOSE_FILE" up -d
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
         
         # Wait for initialization
         sleep 3
@@ -187,7 +197,7 @@ start_sitl() {
         unset OFFSET_LINE
         
         # Start container
-        docker compose -f "$DOCKER_COMPOSE_FILE" up -d
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
         
         # Wait a moment for SITL to initialize
         sleep 2
@@ -214,7 +224,7 @@ stop_sitl() {
     fi
     
     log_info "Stopping SITL..."
-    docker compose -f "$DOCKER_COMPOSE_FILE" down
+    docker-compose -f "$DOCKER_COMPOSE_FILE" down
     log_info "SITL stopped"
 }
 
