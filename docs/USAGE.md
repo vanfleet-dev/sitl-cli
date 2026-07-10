@@ -333,7 +333,7 @@ SITL logs are stored in `~/sitl/logs/` and include:
 
 ### Docker Image
 
-- **Image**: `orthuk/ardupilot-sitl-debian:latest`
+- **Image**: `vanfleetdev/sitl-ardupilot:4.6.3`
 - **Base**: Debian 12 (Bookworm)
 - **ArduPilot Version**: Latest stable
 - **Python**: 3.13
