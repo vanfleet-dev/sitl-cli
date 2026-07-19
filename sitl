@@ -19,6 +19,8 @@ else
     exit 1
 fi
 CONTAINER_NAME="ardupilot-sitl"
+SITL_IMAGE="${SITL_IMAGE:-vanfleetdev/sitl-ardupilot:4.6.3}"
+START_LOCK_DIR="${TMPDIR:-/tmp}/sitl-${UID:-$(id -u)}.lock"
 
 # Colors for output
 RED='\033[0;31m'
@@ -106,13 +108,24 @@ check_docker() {
     fi
     
     if ! docker info &> /dev/null; then
-        log_error "Docker daemon is not running!"
+        log_error "Docker daemon is not running or is not reachable."
+        if command -v colima &> /dev/null; then
+            log_info "Start Colima with: brew services start colima"
+        else
+            log_info "Start Docker Desktop or your Docker service, then retry."
+        fi
+        exit 1
+    fi
+
+    if ! command -v docker-compose &> /dev/null; then
+        log_error "docker-compose is not installed."
         exit 1
     fi
 }
 
 get_container_status() {
-    local status=$(docker ps --filter "name=$CONTAINER_NAME" --format "{{.Status}}" 2>/dev/null)
+    local status
+    status=$(docker ps --filter "name=^/${CONTAINER_NAME}$" --format "{{.Status}}" 2>/dev/null)
     if [ -z "$status" ]; then
         echo "not running"
     else
@@ -120,15 +133,53 @@ get_container_status() {
     fi
 }
 
+container_exists() {
+    docker ps -a --filter "name=^/${CONTAINER_NAME}$" --format "{{.Names}}" 2>/dev/null | grep -qx "$CONTAINER_NAME"
+}
+
+release_start_lock() {
+    rm -f "$START_LOCK_DIR/pid" 2>/dev/null || true
+    rmdir "$START_LOCK_DIR" 2>/dev/null || true
+}
+
+acquire_start_lock() {
+    if mkdir "$START_LOCK_DIR" 2>/dev/null; then
+        echo "$$" > "$START_LOCK_DIR/pid"
+        trap release_start_lock EXIT
+        trap 'exit 130' INT
+        trap 'exit 143' TERM
+        return 0
+    fi
+    local lock_pid=""
+    if [ -f "$START_LOCK_DIR/pid" ]; then
+        read -r lock_pid < "$START_LOCK_DIR/pid" || true
+    fi
+    if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
+        log_error "Another SITL start is already in progress (PID $lock_pid)."
+        exit 1
+    fi
+    release_start_lock
+    if ! mkdir "$START_LOCK_DIR" 2>/dev/null; then
+        log_error "Could not acquire the SITL start lock: $START_LOCK_DIR"
+        exit 1
+    fi
+    echo "$$" > "$START_LOCK_DIR/pid"
+    trap release_start_lock EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+}
+
 start_sitl() {
     local vehicle=$1
     local frame=$2
-    local extra_args=$3
-    local swarm_count=$4
-    local offset_line=$5
-    local location=$6
+    local swarm_count=$3
+    local offset_line=$4
+    local location=$5
+    local wipe=$6
+    local speedup=$7
     
     check_docker
+    acquire_start_lock
     
     # Check if container is already running
     if [ "$(get_container_status)" != "not running" ]; then
@@ -137,8 +188,20 @@ start_sitl() {
         exit 1
     fi
     
-    # Clean up any stopped container with same name
-    docker rm -f $CONTAINER_NAME 2>/dev/null || true
+    # Clean up any stopped container with the same exact name.
+    if container_exists; then
+        docker rm -f "$CONTAINER_NAME" >/dev/null
+    fi
+
+    # Starting SITL must never pull or silently change the preserved image.
+    if ! docker image inspect "$SITL_IMAGE" &> /dev/null; then
+        log_error "Required image is not cached locally: $SITL_IMAGE"
+        log_info "Pull it explicitly with: docker pull $SITL_IMAGE"
+        exit 1
+    fi
+    export SITL_IMAGE
+    export SITL_WIPE="$wipe"
+    export SITL_SPEEDUP="$speedup"
     
     if [ -n "$swarm_count" ]; then
         log_info "Starting SITL Swarm: $vehicle (frame: $frame, count: $swarm_count)"
@@ -155,13 +218,13 @@ start_sitl() {
         cd "$SCRIPT_DIR"
         
         # Start container
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d --pull never
         
         # Wait for initialization
         sleep 3
         
         if [ "$(get_container_status)" != "not running" ]; then
-            log_info "Swarm started successfully!"
+            log_info "Swarm container started. ArduPilot may still be initializing; use 'sitl logs' to follow it."
             log_info "Vehicles: $swarm_count $vehicle(s) with SYS IDs 1-$swarm_count"
             log_info ""
             log_info "MAVLink endpoints (TCP):"
@@ -205,13 +268,13 @@ start_sitl() {
         cd "$SCRIPT_DIR"
         
         # Start container
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d --pull never
         
         # Wait a moment for SITL to initialize
         sleep 2
         
         if [ "$(get_container_status)" != "not running" ]; then
-            log_info "SITL started successfully!"
+            log_info "SITL container started. ArduPilot may still be initializing; use 'sitl logs' to follow it."
             log_info "MAVLink endpoint: tcp:localhost:5760"
             log_info ""
             log_info "Connect with your local MAVProxy:"
@@ -300,10 +363,11 @@ show_logs() {
 parse_args() {
     local vehicle=""
     local frame=""
-    local extra_args=""
     local swarm_count=""
     local offset_line="90,10"  # Default: 90 degrees, 10 meters
     local location=""
+    local wipe="false"
+    local speedup="1"
     
     case "$1" in
         plane)
@@ -385,7 +449,8 @@ parse_args() {
                     exit 1
                 fi
                 if [ "$swarm_count" -gt 20 ]; then
-                    log_warn "Large swarm count ($swarm_count). This may impact performance."
+                    log_error "Swarm count cannot exceed 20"
+                    exit 1
                 fi
                 shift 2
                 ;;
@@ -398,16 +463,23 @@ parse_args() {
                 shift 2
                 ;;
             --wipe)
-                extra_args="$extra_args -w"
+                wipe="true"
                 shift
                 ;;
             --location|-L)
+                if [[ -z "$2" || "$2" =~ ^- ]]; then
+                    log_error "$1 requires a location name"
+                    exit 1
+                fi
                 location="$2"
-                extra_args="$extra_args -L $2"
                 shift 2
                 ;;
             --speedup)
-                extra_args="$extra_args --speedup $2"
+                if [[ -z "$2" || ! "$2" =~ ^[1-9][0-9]*$ ]]; then
+                    log_error "--speedup requires a positive integer"
+                    exit 1
+                fi
+                speedup="$2"
                 shift 2
                 ;;
             *)
@@ -417,7 +489,7 @@ parse_args() {
         esac
     done
     
-    start_sitl "$vehicle" "$frame" "$extra_args" "$swarm_count" "$offset_line" "$location"
+    start_sitl "$vehicle" "$frame" "$swarm_count" "$offset_line" "$location" "$wipe" "$speedup"
 }
 
 # Main entry point

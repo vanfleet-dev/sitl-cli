@@ -22,9 +22,9 @@ Perfect for MAVProxy development and testing without physical hardware.
 
 ### macOS
 
-1. **Docker Desktop** - [Download and install](https://www.docker.com/products/docker-desktop/)
-   - Start Docker Desktop after installation
-   - No additional Docker configuration needed
+1. **Docker runtime**
+   - Docker Desktop: [download and install](https://www.docker.com/products/docker-desktop/), then start it.
+   - Or Colima: `brew install colima docker docker-compose && brew services start colima`
 
 2. **Git** - Usually pre-installed, or install via [Homebrew](https://brew.sh)
 
@@ -210,7 +210,7 @@ sitl plane
 
 ### Automated Install (Both Methods)
 
-If you have Docker and the image ready (either pulled or loaded), you can use the install script:
+If Docker is running, use the install script:
 
 ```bash
 ./install.sh
@@ -218,11 +218,11 @@ If you have Docker and the image ready (either pulled or loaded), you can use th
 
 This will:
 - Check Docker is running
-- Install `sitl` to `~/bin/`
-- Copy necessary files
+- Install `sitl`, `sitlctl`, and the runtime bundle to `~/bin/`
+- Explicitly pull `vanfleetdev/sitl-ardupilot:4.6.3`
 - Verify the installation
 
-**Note:** You must have the Docker image ready before running install.sh (either via `docker pull` or `docker load`).
+Normal `sitl` starts never pull implicitly. If the image is missing, the command prints the exact `docker pull` command and exits.
 
 ## Commands
 
@@ -340,7 +340,8 @@ mavproxy.py --master=tcp:localhost:5760 --master=tcp:localhost:5770
 ```
 
 **Swarm Features:**
-- All vehicles are the same type (e.g., all copters or all planes)
+- One invocation supports one vehicle type (e.g., all copters or all planes)
+- Mixed-domain swarms require separate isolated SITL instances with distinct container names and port ranges; the current CLI does not configure those instances
 - Auto-assigns unique SYS IDs (1, 2, 3, etc.)
 - Vehicles spawn in a line formation to avoid collisions
 - MAVProxy can control all vehicles simultaneously

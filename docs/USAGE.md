@@ -173,7 +173,8 @@ sitl copter --swarm 20 --speedup 5
 
 ### Swarm Limitations
 
-- All vehicles must be the same type (all copters, all planes, etc.)
+- One CLI invocation supports one vehicle type (all copters, all planes, etc.)
+- Mixed-domain swarms need separate isolated instances with distinct names and port ranges; the current CLI does not configure them
 - Maximum recommended: 20 vehicles
 - All vehicles start at the same location type (use offset to space them)
 - Stopping stops the entire swarm (cannot stop individual vehicles)
@@ -233,12 +234,13 @@ mavproxy.py --master=localhost:14550 --target-system=1
 ## File Locations
 
 ```
-~/sitl/
+~/bin/
+├── sitl                  # Canonical CLI
+├── sitlctl -> sitl       # Compatibility command
 ├── docker-compose.yml    # Docker configuration
-├── .env                  # Environment variables
-├── logs/                 # SITL logs directory
-├── eeprom.bin           # SITL parameter storage
-└── sitl                 # CLI script (copied to ~/bin)
+├── docker-entrypoint.sh  # Container entrypoint
+├── locations.txt         # Named launch locations
+└── logs/                 # SITL logs directory
 ```
 
 ## Troubleshooting
