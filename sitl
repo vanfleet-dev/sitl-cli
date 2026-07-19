@@ -20,7 +20,8 @@ else
 fi
 CONTAINER_NAME="ardupilot-sitl"
 SITL_IMAGE="${SITL_IMAGE:-vanfleetdev/sitl-ardupilot:4.6.3}"
-START_LOCK_DIR="${TMPDIR:-/tmp}/sitl-${UID:-$(id -u)}.lock"
+START_LOCK_FILE="${TMPDIR:-/tmp}/sitl-${UID:-$(id -u)}.lock"
+START_LOCK_OWNED="false"
 
 # Colors for output
 RED='\033[0;31m'
@@ -108,9 +109,19 @@ check_docker() {
     fi
     
     if ! docker info &> /dev/null; then
-        log_error "Docker daemon is not running or is not reachable."
+        local docker_context
+        docker_context=$(docker context show 2>/dev/null || echo "unknown")
+        log_error "Docker is not reachable using context '$docker_context'."
         if command -v colima &> /dev/null; then
-            log_info "Start Colima with: brew services start colima"
+            if colima status &> /dev/null; then
+                log_info "Colima is running; select it with: docker context use colima"
+                log_info "If that context is already selected, check Docker socket permissions."
+            else
+                log_info "Start Colima with: colima start"
+                if command -v brew &> /dev/null; then
+                    log_info "For login persistence: brew services start colima"
+                fi
+            fi
         else
             log_info "Start Docker Desktop or your Docker service, then retry."
         fi
@@ -138,35 +149,39 @@ container_exists() {
 }
 
 release_start_lock() {
-    rm -f "$START_LOCK_DIR/pid" 2>/dev/null || true
-    rmdir "$START_LOCK_DIR" 2>/dev/null || true
+    if [ "$START_LOCK_OWNED" != "true" ]; then
+        return 0
+    fi
+    local lock_pid=""
+    if [ -f "$START_LOCK_FILE" ]; then
+        read -r lock_pid < "$START_LOCK_FILE" || true
+    fi
+    if [ "$lock_pid" = "$$" ]; then
+        rm -f "$START_LOCK_FILE" 2>/dev/null || true
+    fi
+    START_LOCK_OWNED="false"
 }
 
 acquire_start_lock() {
-    if mkdir "$START_LOCK_DIR" 2>/dev/null; then
-        echo "$$" > "$START_LOCK_DIR/pid"
+    if (set -o noclobber; printf '%s\n' "$$" > "$START_LOCK_FILE") 2>/dev/null; then
+        START_LOCK_OWNED="true"
         trap release_start_lock EXIT
         trap 'exit 130' INT
         trap 'exit 143' TERM
         return 0
     fi
+
     local lock_pid=""
-    if [ -f "$START_LOCK_DIR/pid" ]; then
-        read -r lock_pid < "$START_LOCK_DIR/pid" || true
+    if [ -f "$START_LOCK_FILE" ]; then
+        read -r lock_pid < "$START_LOCK_FILE" || true
     fi
     if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
         log_error "Another SITL start is already in progress (PID $lock_pid)."
-        exit 1
+    else
+        log_error "A stale SITL start lock exists: $START_LOCK_FILE"
+        log_info "Remove it after confirming no start is active: rm -f $START_LOCK_FILE"
     fi
-    release_start_lock
-    if ! mkdir "$START_LOCK_DIR" 2>/dev/null; then
-        log_error "Could not acquire the SITL start lock: $START_LOCK_DIR"
-        exit 1
-    fi
-    echo "$$" > "$START_LOCK_DIR/pid"
-    trap release_start_lock EXIT
-    trap 'exit 130' INT
-    trap 'exit 143' TERM
+    exit 1
 }
 
 start_sitl() {
@@ -218,7 +233,7 @@ start_sitl() {
         cd "$SCRIPT_DIR"
         
         # Start container
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d --pull never
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
         
         # Wait for initialization
         sleep 3
@@ -268,7 +283,7 @@ start_sitl() {
         cd "$SCRIPT_DIR"
         
         # Start container
-        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d --pull never
+        docker-compose -f "$DOCKER_COMPOSE_FILE" up -d
         
         # Wait a moment for SITL to initialize
         sleep 2
