@@ -348,7 +348,7 @@ mavproxy.py --master=tcp:localhost:5760 --master=tcp:localhost:5770
 - Use `vehicle <n>` in MAVProxy to switch between vehicles
 - Use `alllinks <cmd>` to send commands to all vehicles
 
-**Note:** Maximum recommended swarm size is 20 vehicles for performance.
+**Note:** The launcher supports a maximum swarm size of 20 vehicles.
 
 ### Fresh Start with Wiped Parameters
 

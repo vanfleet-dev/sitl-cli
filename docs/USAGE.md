@@ -167,7 +167,7 @@ sitl copter --swarm 10 --offset-line 0,15 --location CMAC
 
 **Large-Scale Testing:**
 ```bash
-# 20 copters (maximum recommended)
+# 20 copters (maximum supported)
 sitl copter --swarm 20 --speedup 5
 ```
 
@@ -175,7 +175,7 @@ sitl copter --swarm 20 --speedup 5
 
 - One CLI invocation supports one vehicle type (all copters, all planes, etc.)
 - Mixed-domain swarms need separate isolated instances with distinct names and port ranges; the current CLI does not configure them
-- Maximum recommended: 20 vehicles
+- Maximum supported: 20 vehicles
 - All vehicles start at the same location type (use offset to space them)
 - Stopping stops the entire swarm (cannot stop individual vehicles)
 
@@ -294,11 +294,11 @@ ls -la /ardupilot/build/sitl/bin/
 The script should work without sudo. If you get permission errors:
 
 ```bash
-# Fix ownership
-sudo chown -R $(whoami) ~/sitl
+# Fix ownership of the installed runtime bundle
+sudo chown $(whoami) ~/bin/sitl ~/bin/docker-compose.yml ~/bin/docker-entrypoint.sh
 
-# Ensure script is executable
-chmod +x ~/bin/sitl
+# Ensure the launcher and entrypoint are executable
+chmod +x ~/bin/sitl ~/bin/docker-entrypoint.sh
 ```
 
 ## Advanced Usage
@@ -327,9 +327,7 @@ Then connect your second GCS to port 14551.
 
 ### Accessing Logs
 
-SITL logs are stored in `~/sitl/logs/` and include:
-- `.bin` files - Flight data logs
-- `.tlog` files - MAVLink telemetry logs (if enabled)
+Use `sitl logs` for container output. The installed bundle keeps its host runtime directory under `~/bin/`.
 
 ## Development Notes
 
@@ -337,21 +335,20 @@ SITL logs are stored in `~/sitl/logs/` and include:
 
 - **Image**: `vanfleetdev/sitl-ardupilot:4.6.3`
 - **Base**: Debian 12 (Bookworm)
-- **ArduPilot Version**: Latest stable
-- **Python**: 3.13
+- **ArduPilot Version**: 4.6.3
 
 ### Port Mapping
 
-- Container UDP 14550 → Host UDP 14550
-- Container TCP 5760 → Host TCP 5760 (optional)
+- Single vehicle: host TCP 5760
+- Swarm: host TCP 5760, 5770, ... 5950 (one endpoint per vehicle, maximum 20)
 
 ### Container Lifecycle
 
-1. `sitl plane` creates and starts container
-2. Container runs SITL with `--no-mavproxy`
-3. SITL outputs MAVLink on UDP port 14550
-4. Your local MAVProxy connects to localhost:14550
-5. `sitl stop` stops and removes container
+1. `sitl plane` creates and starts the container
+2. The container runs prebuilt SITL with MAVProxy disabled
+3. SITL serves MAVLink over TCP, starting at port 5760
+4. Local MAVProxy connects to `tcp:localhost:5760` and the additional swarm endpoints
+5. `sitl stop` stops and removes the container
 
 ## References
 
