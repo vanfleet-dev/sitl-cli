@@ -1,16 +1,32 @@
 services:
   sitl:
-    image: vanfleetdev/sitl-ardupilot:4.6.3
+    image: ${SITL_IMAGE:-vanfleetdev/sitl-ardupilot:4.6.3}
     platform: linux/amd64
     container_name: ardupilot-sitl
     ports:
-      # TCP port for single vehicle mode
+      # TCP MAVLink ports for up to 20 vehicles (increments of 10).
       - "5760:5760/tcp"
-      # TCP ports for swarm mode (5760-5790 covers up to 30 vehicles)
-      - "5760-5790:5760-5790/tcp"
+      - "5770:5770/tcp"
+      - "5780:5780/tcp"
+      - "5790:5790/tcp"
+      - "5800:5800/tcp"
+      - "5810:5810/tcp"
+      - "5820:5820/tcp"
+      - "5830:5830/tcp"
+      - "5840:5840/tcp"
+      - "5850:5850/tcp"
+      - "5860:5860/tcp"
+      - "5870:5870/tcp"
+      - "5880:5880/tcp"
+      - "5890:5890/tcp"
+      - "5900:5900/tcp"
+      - "5910:5910/tcp"
+      - "5920:5920/tcp"
+      - "5930:5930/tcp"
+      - "5940:5940/tcp"
+      - "5950:5950/tcp"
     volumes:
       - ./logs:/ardupilot/logs
-      - ./eeprom.bin:/ardupilot/eeprom.bin
       - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./locations.txt:/root/ardupilot/Tools/autotest/locations.txt:ro
       - ~/waypoints:/root/waypoints:ro
@@ -21,6 +37,8 @@ services:
       - SWARM_COUNT=${SWARM_COUNT:-}
       - OFFSET_LINE=${OFFSET_LINE:-90,10}
       - SITL_LOCATION=${SITL_LOCATION:-CMAC}
+      - SITL_WIPE=${SITL_WIPE:-false}
+      - SITL_SPEEDUP=${SITL_SPEEDUP:-1}
     entrypoint: ["/bin/bash", "/docker-entrypoint.sh"]
     restart: "no"
     stdin_open: true

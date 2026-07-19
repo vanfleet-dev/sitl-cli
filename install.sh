@@ -129,11 +129,16 @@ install_sitl_command() {
         exit 1
     fi
     
-    # Copy and set permissions
+    # Install the launcher and its runtime bundle together.
     cp "$source_file" "$target_file"
     chmod +x "$target_file"
+    cp "$SCRIPT_DIR/docker-compose.yml" "$HOME/bin/docker-compose.yml"
+    cp "$SCRIPT_DIR/docker-entrypoint.sh" "$HOME/bin/docker-entrypoint.sh"
+    cp "$SCRIPT_DIR/locations.txt" "$HOME/bin/locations.txt"
+    chmod +x "$HOME/bin/docker-entrypoint.sh"
+    ln -sfn sitl "$HOME/bin/sitlctl"
     
-    log_info "sitl command installed to ~/bin/sitl ✓"
+    log_info "sitl and sitlctl installed to ~/bin ✓"
 }
 
 pull_docker_image() {
