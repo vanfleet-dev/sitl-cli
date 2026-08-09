@@ -36,7 +36,7 @@ services:
       - SWARM_MODE=${SWARM_MODE:-false}
       - SWARM_COUNT=${SWARM_COUNT:-}
       - OFFSET_LINE=${OFFSET_LINE:-90,10}
-      - SITL_LOCATION=${SITL_LOCATION:-CMAC}
+      - SITL_LOCATION=${SITL_LOCATION:-MAVPROXY_USGS1M}
       - SITL_WIPE=${SITL_WIPE:-false}
       - SITL_SPEEDUP=${SITL_SPEEDUP:-1}
     entrypoint: ["/bin/bash", "/docker-entrypoint.sh"]

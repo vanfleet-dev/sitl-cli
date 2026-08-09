@@ -265,8 +265,9 @@ Normal `sitl` starts never pull implicitly. If the image is missing, the command
 
 You can start SITL at custom locations by editing the `locations.txt` file:
 
-**Default locations included:**
-- `CMAC` - Canberra, Australia (default ArduPilot test location)
+**Default location:**
+- `MAVPROXY_USGS1M` - xmac Map3D USGS one-meter terrain test site
+- `CMAC` - Canberra, Australia
 - `Ballarat` - Ballarat, Australia
 - `Kingaroy` - Kingaroy, Australia
 - `AVC` - Boulder, Colorado

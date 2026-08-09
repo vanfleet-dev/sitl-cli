@@ -227,7 +227,7 @@ start_sitl() {
         export SWARM_COUNT="$swarm_count"
         export OFFSET_LINE="$offset_line"
         export SWARM_MODE="true"
-        export SITL_LOCATION="${location:-CMAC}"
+        export SITL_LOCATION="${location:-MAVPROXY_USGS1M}"
         
         # Change to script directory so relative paths in docker-compose work
         cd "$SCRIPT_DIR"
@@ -274,7 +274,7 @@ start_sitl() {
         # Set environment variables for single vehicle
         export SITL_VEHICLE="$vehicle"
         export SITL_FRAME="$frame"
-        export SITL_LOCATION="${location:-CMAC}"
+        export SITL_LOCATION="${location:-MAVPROXY_USGS1M}"
         export SWARM_MODE="false"
         unset SWARM_COUNT
         unset OFFSET_LINE
