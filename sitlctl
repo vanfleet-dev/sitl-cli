@@ -298,6 +298,13 @@ parse_start_options() {
     done
 }
 
+validate_start_configuration() {
+    if [ "$SITL_VEHICLE" = "ArduCopter" ] && [ "$SITL_FRAME" = "heli" ]; then
+        log_error "Frame heli is unavailable: the pinned image lacks arducopter-heli."
+        exit 1
+    fi
+}
+
 print_endpoints() {
     local count="$1"
     local index=0
@@ -317,6 +324,7 @@ start_instance() {
     configure_instance "$instance"
     select_vehicle "$vehicle_name"
     parse_start_options "$@"
+    validate_start_configuration
     check_docker
     acquire_start_lock
 
