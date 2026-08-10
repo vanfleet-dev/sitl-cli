@@ -6,12 +6,12 @@ A small operator-facing wrapper for running ArduPilot SITL in Docker or Colima.
 
 ## Runtime layout
 
-| Instance | Container | TCP endpoints | SYSIDs | Logs |
+| Instance | Container | TCP endpoints | SYSIDs | State root |
 |---|---|---|---|---|
 | `1` | `ardupilot-sitl-1` | `5760, 5770, ... 5950` | `1..20` | `~/bin/logs/1` |
 | `2` | `ardupilot-sitl-2` | `5960, 5970, ... 6150` | `21..40` | `~/bin/logs/2` |
 
-Each instance can run one vehicle or a same-type swarm of up to 20 vehicles. Container names, Compose projects, host ports, ArduPilot instance offsets, SYSIDs, start locks, and log directories are separate.
+Each instance can run one vehicle or a same-type swarm of up to 20 vehicles. Container names, Compose projects, host ports, ArduPilot instance offsets, SYSIDs, start locks, and state roots are separate. State is further isolated by vehicle and frame below each root. `sitlctl logs` reads the selected container's Docker output.
 
 The launcher never stops Colima and never touches unrelated Docker workloads.
 
