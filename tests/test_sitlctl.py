@@ -19,14 +19,47 @@ args = sys.argv[1:]
 state_dir = Path(os.environ["FAKE_DOCKER_STATE_DIR"])
 state_dir.mkdir(parents=True, exist_ok=True)
 
+def run_compose(compose_args):
+    name = os.environ["SITL_CONTAINER_NAME"]
+    with (state_dir / "compose.calls").open("a") as handle:
+        handle.write(" ".join(compose_args) + "\n")
+
+    if "up" in compose_args:
+        (state_dir / name).write_text("running\n")
+        keys = [
+            "SITL_INSTANCE", "SITL_CONTAINER_NAME", "SITL_LOG_DIR",
+            "SITL_PORT_BASE", "SITL_INSTANCE_OFFSET", "SITL_SYSID_BASE",
+            "SITL_VEHICLE", "SITL_FRAME", "SITL_LOCATION", "SITL_WIPE",
+            "SITL_SPEEDUP", "SWARM_MODE", "SWARM_COUNT", "OFFSET_LINE",
+        ] + [f"SITL_PORT_{index}" for index in range(20)]
+        lines = [f"{key}={os.environ.get(key, '')}" for key in keys]
+        (state_dir / f"{name}.env").write_text("\n".join(lines) + "\n")
+        print(f"started {name}")
+        raise SystemExit(0)
+    if "down" in compose_args:
+        (state_dir / name).unlink(missing_ok=True)
+        (state_dir / f"{name}.env").unlink(missing_ok=True)
+        print(f"stopped {name}")
+        raise SystemExit(0)
+    raise SystemExit(f"unsupported fake compose call: {compose_args}")
+
 if not args:
     raise SystemExit(2)
 if args[0] in {"info", "context"}:
     if args[0] == "context":
         print("fake")
     raise SystemExit(0)
+if args[:2] == ["compose", "version"]:
+    enabled = os.environ.get("FAKE_DOCKER_COMPOSE_PLUGIN") == "true"
+    raise SystemExit(0 if enabled else 1)
+if args[0] == "compose":
+    run_compose(args[1:])
 if args[:2] == ["image", "inspect"]:
-    raise SystemExit(0)
+    present = os.environ.get("FAKE_DOCKER_IMAGE_PRESENT", "true") == "true"
+    raise SystemExit(0 if present else 1)
+if args[0] == "pull":
+    succeeds = os.environ.get("FAKE_DOCKER_PULL_SUCCEEDS", "true") == "true"
+    raise SystemExit(0 if succeeds else 1)
 
 def filtered_name():
     for arg in args:
@@ -110,6 +143,8 @@ class SitlctlTests(unittest.TestCase):
             {
                 "PATH": f"{self.fake_bin}:{self.env['PATH']}",
                 "FAKE_DOCKER_STATE_DIR": str(self.state),
+                "FAKE_DOCKER_COMPOSE_PLUGIN": "false",
+                "FAKE_DOCKER_IMAGE_PRESENT": "true",
                 "SITL_LOG_ROOT": str(self.logs),
                 "SITLCTL_START_WAIT_SECONDS": "0",
                 "TERM": "dumb",
@@ -173,6 +208,44 @@ class SitlctlTests(unittest.TestCase):
         for name in ("docker-compose.yml", "docker-entrypoint.sh", "locations.txt"):
             self.assertTrue((bin_dir / name).is_file(), name)
 
+    def test_failed_image_pull_preserves_the_complete_installed_bundle(self):
+        home = self.root / "home"
+        bin_dir = home / "bin"
+        bin_dir.mkdir(parents=True)
+        installed_files = (
+            "sitlctl",
+            "docker-compose.yml",
+            "docker-entrypoint.sh",
+            "locations.txt",
+            "sitl",
+        )
+        for name in installed_files:
+            (bin_dir / name).write_text(f"old {name}\n")
+
+        environment = self.env.copy()
+        environment.update(
+            {
+                "HOME": str(home),
+                "PATH": f"{bin_dir}:{environment['PATH']}",
+                "FAKE_DOCKER_IMAGE_PRESENT": "false",
+                "FAKE_DOCKER_PULL_SUCCEEDS": "false",
+            }
+        )
+        result = subprocess.run(
+            ["bash", str(REPO / "install.sh")],
+            cwd=REPO,
+            env=environment,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        for name in installed_files:
+            self.assertEqual((bin_dir / name).read_text(), f"old {name}\n")
+        self.assertEqual(list(bin_dir.glob(".sitlctl-stage.*")), [])
+
     def test_second_instance_uses_distinct_runtime_contract(self):
         result = self.run_sitlctl("start", "2", "rover", "--speedup", "3")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -214,6 +287,30 @@ class SitlctlTests(unittest.TestCase):
         result = self.run_sitlctl("start", "1", "copter", "--mystery")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Unknown option: --mystery", result.stderr)
+
+    def test_unknown_location_fails_before_compose(self):
+        result = self.run_sitlctl(
+            "start",
+            "1",
+            "copter",
+            "--location",
+            "THIS_LOCATION_DOES_NOT_EXIST",
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unknown location: THIS_LOCATION_DOES_NOT_EXIST", result.stderr)
+        self.assertFalse((self.state / "compose.calls").exists())
+        self.assertFalse((self.state / "ardupilot-sitl-1").exists())
+
+    def test_plugin_only_docker_compose_path(self):
+        (self.fake_bin / "docker-compose").unlink()
+        self.env["FAKE_DOCKER_COMPOSE_PLUGIN"] = "true"
+
+        result = self.run_sitlctl("start", "1", "plane")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = (self.state / "compose.calls").read_text()
+        self.assertIn("-p sitlctl-1", calls)
 
     def test_unavailable_heli_family_is_rejected(self):
         result = self.run_sitlctl("start", "1", "copter-heli")

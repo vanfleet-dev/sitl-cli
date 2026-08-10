@@ -18,7 +18,7 @@ The launcher never stops Colima and never touches unrelated Docker workloads.
 ## Requirements
 
 - Docker or Colima
-- `docker-compose`
+- Docker Compose plugin (`docker compose`) or standalone `docker-compose`
 - Cached image `vanfleetdev/sitl-ardupilot:4.6.3`
 
 On macOS with Homebrew:
@@ -38,11 +38,11 @@ cd sitl-cli
 
 The installer:
 
-1. installs the real launcher as `~/bin/sitlctl`;
-2. installs `docker-compose.yml`, `docker-entrypoint.sh`, and `locations.txt` beside it;
-3. keeps the cached image when present, or pulls it when missing;
-4. verifies `sitlctl --help`;
-5. removes the old `~/bin/sitl` command only after the new command passes verification.
+1. keeps the cached image when present, or pulls it when missing;
+2. stages `sitlctl`, `docker-compose.yml`, `docker-entrypoint.sh`, and `locations.txt` as one bundle;
+3. verifies the staged `sitlctl --help` path before replacing installed files;
+4. installs the complete bundle under `~/bin`;
+5. removes the old `~/bin/sitl` command only after the verified bundle is installed.
 
 Ensure `~/bin` is in `PATH`:
 
@@ -85,7 +85,7 @@ Start options:
 --offset-line <heading,distance>
 ```
 
-Unknown commands and options fail instead of being ignored.
+Unknown commands, options, and location names fail before Docker startup instead of being ignored.
 
 ## Two-vehicle example
 
@@ -137,11 +137,13 @@ mavproxy.py \
 
 ## Named locations
 
-The default is `MAVPROXY_USGS1M`. Select another entry from `locations.txt` with:
+The default is `MAVPROXY_USGS1M`. Select another exact entry from `locations.txt` with:
 
 ```bash
 sitlctl start 1 rover --location CMAC
 ```
+
+All MAVLink endpoints are published on host loopback only (`127.0.0.1`).
 
 ## Image behavior
 
@@ -158,7 +160,7 @@ SITL_IMAGE=example/image:tag sitlctl start 1 copter
 ```bash
 bash -n sitlctl install.sh docker-entrypoint.sh
 python3 -m unittest discover -s tests -v
-docker-compose -f docker-compose.yml config
+docker compose -f docker-compose.yml config
 ```
 
 Runtime acceptance still requires real ArduPilot heartbeats on every requested MAVLink link; container startup alone is not sufficient.

@@ -40,7 +40,7 @@ sitlctl start 1 copter --speedup 5
 sitlctl start 2 rover --location MAVPROXY_USGS1M
 ```
 
-A running instance must be stopped before it can be replaced. Starting instance 1 never replaces instance 2.
+A running instance must be stopped before it can be replaced. Starting instance 1 never replaces instance 2. Location names must exactly match an entry in the sibling `locations.txt`; unknown names fail before Docker startup.
 
 ### Status
 
@@ -115,7 +115,7 @@ sitlctl start 1 copter --frame dodeca-hexa
 - TCP ports: `5960, 5970, ... 6150`
 - state root: `~/bin/logs/2`
 
-The fixed ranges prevent cross-container port and SYSID collisions without hidden runtime allocation. Persistent state is stored below each root in a vehicle/frame directory such as `ArduPlane-plane` or `Rover-rover-skid`; swarms then use ArduPilot instance-offset subdirectories. `sitlctl logs` reads the selected container's Docker output instead of these state files.
+The fixed ranges prevent cross-container port and SYSID collisions without hidden runtime allocation. Every host port binds only `127.0.0.1`. Persistent state is stored below each root in a vehicle/frame directory such as `ArduPlane-plane` or `Rover-rover-skid`; swarms then use ArduPilot instance-offset subdirectories. `sitlctl logs` reads the selected container's Docker output instead of these state files.
 
 ## Swarms
 
@@ -190,4 +190,4 @@ Use instance `2` in both commands when diagnosing the second container.
     └── 2/
 ```
 
-The old `~/bin/sitl` command is removed after the verified install.
+The installer accepts either the Docker Compose plugin or standalone command, stages and verifies the complete runtime bundle before replacement, and removes the old `~/bin/sitl` command only after the verified install.

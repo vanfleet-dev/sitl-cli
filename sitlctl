@@ -34,8 +34,10 @@ fi
 
 SITL_IMAGE="${SITL_IMAGE:-vanfleetdev/sitl-ardupilot:4.6.3}"
 SITL_LOG_ROOT="${SITL_LOG_ROOT:-$SCRIPT_DIR/logs}"
+SITL_LOCATIONS_FILE="$SCRIPT_DIR/locations.txt"
 MAX_VEHICLES=20
 START_LOCK_OWNED=false
+COMPOSE_COMMAND=()
 
 show_help() {
     cat <<'EOF'
@@ -102,8 +104,12 @@ check_docker() {
         exit 1
     fi
 
-    if ! command -v docker-compose >/dev/null 2>&1; then
-        log_error "docker-compose is not installed."
+    if docker compose version >/dev/null 2>&1; then
+        COMPOSE_COMMAND=(docker compose)
+    elif command -v docker-compose >/dev/null 2>&1; then
+        COMPOSE_COMMAND=(docker-compose)
+    else
+        log_error "Docker Compose is not installed."
         exit 1
     fi
 }
@@ -299,6 +305,17 @@ parse_start_options() {
 }
 
 validate_start_configuration() {
+    if [ ! -f "$SITL_LOCATIONS_FILE" ]; then
+        log_error "Locations file not found: $SITL_LOCATIONS_FILE"
+        exit 1
+    fi
+
+    if ! awk -F= -v name="$SITL_LOCATION" '$1 == name { found = 1 } END { exit !found }' "$SITL_LOCATIONS_FILE"; then
+        log_error "Unknown location: $SITL_LOCATION"
+        log_info "Choose a name defined in $SITL_LOCATIONS_FILE"
+        exit 1
+    fi
+
     if [ "$SITL_VEHICLE" != "ArduCopter" ]; then
         return 0
     fi
@@ -365,7 +382,7 @@ start_instance() {
     log_info "Starting instance $SITL_INSTANCE: $SITL_VEHICLE ($SITL_FRAME)"
     (
         cd "$SCRIPT_DIR"
-        docker-compose -p "$COMPOSE_PROJECT" -f "$DOCKER_COMPOSE_FILE" up -d
+        "${COMPOSE_COMMAND[@]}" -p "$COMPOSE_PROJECT" -f "$DOCKER_COMPOSE_FILE" up -d
     )
 
     sleep "${SITLCTL_START_WAIT_SECONDS:-2}"
@@ -392,7 +409,7 @@ stop_instance() {
     log_info "Stopping instance $SITL_INSTANCE..."
     (
         cd "$SCRIPT_DIR"
-        docker-compose -p "$COMPOSE_PROJECT" -f "$DOCKER_COMPOSE_FILE" down
+        "${COMPOSE_COMMAND[@]}" -p "$COMPOSE_PROJECT" -f "$DOCKER_COMPOSE_FILE" down
     )
     if container_exists; then
         log_error "Instance $SITL_INSTANCE still exists after Compose shutdown."
