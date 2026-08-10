@@ -72,7 +72,7 @@ Supported vehicles:
 - `rover`
 - `rover-skid`
 
-Helicopter is not advertised because the pinned image does not contain the separate `arducopter-heli` binary required by ArduPilot's frame metadata.
+Helicopter is not advertised because the pinned image does not contain the separate `arducopter-heli` binary required by ArduPilot's frame metadata. The known `heli`, `heli-gas`, `heli-dual`, and `heli-blade360` frame overrides are rejected before Docker startup.
 
 Start options:
 

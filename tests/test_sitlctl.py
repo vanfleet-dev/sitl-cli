@@ -215,14 +215,29 @@ class SitlctlTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Unknown option: --mystery", result.stderr)
 
-    def test_unavailable_heli_is_not_advertised(self):
+    def test_unavailable_heli_family_is_rejected(self):
         result = self.run_sitlctl("start", "1", "copter-heli")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Unknown vehicle: copter-heli", result.stderr)
 
-        result = self.run_sitlctl("start", "1", "copter", "--frame", "heli")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("pinned image lacks arducopter-heli", result.stderr)
+        for frame in ("heli", "heli-gas", "heli-dual", "heli-blade360"):
+            with self.subTest(frame=frame):
+                result = self.run_sitlctl(
+                    "start",
+                    "1",
+                    "copter",
+                    "--frame",
+                    frame,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    f"Frame {frame} is unavailable",
+                    result.stderr,
+                )
+                self.assertIn("pinned image lacks arducopter-heli", result.stderr)
+
+        result = self.run_sitlctl("start", "1", "copter", "--frame", "custom")
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

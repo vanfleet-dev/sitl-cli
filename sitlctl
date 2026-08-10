@@ -299,10 +299,16 @@ parse_start_options() {
 }
 
 validate_start_configuration() {
-    if [ "$SITL_VEHICLE" = "ArduCopter" ] && [ "$SITL_FRAME" = "heli" ]; then
-        log_error "Frame heli is unavailable: the pinned image lacks arducopter-heli."
-        exit 1
+    if [ "$SITL_VEHICLE" != "ArduCopter" ]; then
+        return 0
     fi
+
+    case "$SITL_FRAME" in
+        heli|heli-gas|heli-dual|heli-blade360)
+            log_error "Frame $SITL_FRAME is unavailable: the pinned image lacks arducopter-heli."
+            exit 1
+            ;;
+    esac
 }
 
 print_endpoints() {
