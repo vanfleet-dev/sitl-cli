@@ -84,9 +84,10 @@ Logs follow the selected container. Shell requires the selected instance to be r
 | `copter-hexa` | ArduCopter | `hexa` |
 | `copter-octa` | ArduCopter | `octa` |
 | `copter-tri` | ArduCopter | `tri` |
-| `copter-heli` | ArduCopter | `heli` |
 | `rover` | Rover | `rover` |
 | `rover-skid` | Rover | `rover-skid` |
+
+Helicopter is not available in the pinned image because ArduPilot requires a separate `arducopter-heli` binary that the image does not contain.
 
 Override a frame only when ArduPilot supports it:
 

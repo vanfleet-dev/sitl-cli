@@ -56,7 +56,6 @@ Vehicles:
   copter-hexa      ArduCopter, hexa frame
   copter-octa      ArduCopter, octa frame
   copter-tri       ArduCopter, tri frame
-  copter-heli      ArduCopter, heli frame
   rover            Rover
   rover-skid       Rover, skid-steering frame
 
@@ -222,10 +221,6 @@ select_vehicle() {
         copter-tri|tri)
             SITL_VEHICLE="ArduCopter"
             SITL_FRAME="tri"
-            ;;
-        copter-heli|heli)
-            SITL_VEHICLE="ArduCopter"
-            SITL_FRAME="heli"
             ;;
         rover)
             SITL_VEHICLE="Rover"

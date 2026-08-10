@@ -69,9 +69,10 @@ Supported vehicles:
 - `copter-hexa`
 - `copter-octa`
 - `copter-tri`
-- `copter-heli`
 - `rover`
 - `rover-skid`
+
+Helicopter is not advertised because the pinned image does not contain the separate `arducopter-heli` binary required by ArduPilot's frame metadata.
 
 Start options:
 

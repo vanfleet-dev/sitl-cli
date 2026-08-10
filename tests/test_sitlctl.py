@@ -215,6 +215,11 @@ class SitlctlTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("Unknown option: --mystery", result.stderr)
 
+    def test_unavailable_heli_is_not_advertised(self):
+        result = self.run_sitlctl("start", "1", "copter-heli")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unknown vehicle: copter-heli", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
