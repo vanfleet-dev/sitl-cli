@@ -25,7 +25,7 @@ services:
       - "${SITL_PORT_18:-5940}:${SITL_PORT_18:-5940}/tcp"
       - "${SITL_PORT_19:-5950}:${SITL_PORT_19:-5950}/tcp"
     volumes:
-      - ${SITL_LOG_DIR:-./logs/1}:/ardupilot/logs
+      - ${SITL_LOG_DIR:-./logs/1}:/root/ardupilot/logs
       - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./locations.txt:/root/ardupilot/Tools/autotest/locations.txt:ro
       - ~/waypoints:/root/waypoints:ro

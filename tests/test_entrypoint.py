@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 REPO = Path(__file__).resolve().parents[1]
+COMPOSE = REPO / "docker-compose.yml"
 ENTRYPOINT = REPO / "docker-entrypoint.sh"
 
 
@@ -73,6 +74,14 @@ class EntrypointTests(unittest.TestCase):
     def option_value(arguments, option):
         index = arguments.index(option)
         return arguments[index + 1]
+
+    def test_compose_mounts_the_entrypoint_state_directory(self):
+        compose = COMPOSE.read_text()
+        self.assertIn(
+            "${SITL_LOG_DIR:-./logs/1}:/root/ardupilot/logs",
+            compose,
+        )
+        self.assertNotIn(":/ardupilot/logs", compose)
 
     def test_single_vehicle_frames_use_sim_vehicle_metadata(self):
         cases = (
