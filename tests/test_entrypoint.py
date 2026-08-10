@@ -57,7 +57,11 @@ class EntrypointTests(unittest.TestCase):
                 "SWARM_MODE": "false",
             }
         )
-        environment.update(overrides)
+        for key, value in overrides.items():
+            if value is None:
+                environment.pop(key, None)
+            else:
+                environment[key] = value
         result = subprocess.run(
             ["bash", str(ENTRYPOINT)],
             cwd=REPO,
@@ -126,6 +130,19 @@ class EntrypointTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.option_value(arguments, "-I"), "20")
         self.assertEqual(self.option_value(arguments, "--sysid"), "21")
+
+    def test_default_state_directory_isolated_by_vehicle_and_frame(self):
+        result, arguments = self.run_entrypoint(
+            "ArduPlane",
+            "plane",
+            SITL_STATE_DIR=None,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.option_value(arguments, "--use-dir"),
+            str(self.root / "logs" / "ArduPlane-plane"),
+        )
 
     def test_swarm_uses_auto_sysids_and_the_instance_state_root(self):
         result, arguments = self.run_entrypoint(

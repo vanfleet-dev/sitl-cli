@@ -77,7 +77,7 @@ printf 'TCP ports: %s..%s (increments of 10)\n' "$SITL_PORT_BASE" "$((SITL_PORT_
 printf '%s\n' "========================================="
 
 ARDUPILOT_ROOT=${ARDUPILOT_ROOT:-/root/ardupilot}
-SITL_STATE_DIR=${SITL_STATE_DIR:-$ARDUPILOT_ROOT/logs}
+SITL_STATE_DIR=${SITL_STATE_DIR:-$ARDUPILOT_ROOT/logs/$SITL_VEHICLE-$SITL_FRAME}
 sim_vehicle="$ARDUPILOT_ROOT/Tools/autotest/sim_vehicle.py"
 if [ ! -x "$sim_vehicle" ]; then
     echo "sim_vehicle.py is not executable: $sim_vehicle" >&2
