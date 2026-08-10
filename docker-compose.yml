@@ -2,35 +2,35 @@ services:
   sitl:
     image: ${SITL_IMAGE:-vanfleetdev/sitl-ardupilot:4.6.3}
     platform: linux/amd64
-    container_name: ardupilot-sitl
+    container_name: ${SITL_CONTAINER_NAME:-ardupilot-sitl-1}
     ports:
-      # TCP MAVLink ports for up to 20 vehicles (increments of 10).
-      - "5760:5760/tcp"
-      - "5770:5770/tcp"
-      - "5780:5780/tcp"
-      - "5790:5790/tcp"
-      - "5800:5800/tcp"
-      - "5810:5810/tcp"
-      - "5820:5820/tcp"
-      - "5830:5830/tcp"
-      - "5840:5840/tcp"
-      - "5850:5850/tcp"
-      - "5860:5860/tcp"
-      - "5870:5870/tcp"
-      - "5880:5880/tcp"
-      - "5890:5890/tcp"
-      - "5900:5900/tcp"
-      - "5910:5910/tcp"
-      - "5920:5920/tcp"
-      - "5930:5930/tcp"
-      - "5940:5940/tcp"
-      - "5950:5950/tcp"
+      - "${SITL_PORT_0:-5760}:${SITL_PORT_0:-5760}/tcp"
+      - "${SITL_PORT_1:-5770}:${SITL_PORT_1:-5770}/tcp"
+      - "${SITL_PORT_2:-5780}:${SITL_PORT_2:-5780}/tcp"
+      - "${SITL_PORT_3:-5790}:${SITL_PORT_3:-5790}/tcp"
+      - "${SITL_PORT_4:-5800}:${SITL_PORT_4:-5800}/tcp"
+      - "${SITL_PORT_5:-5810}:${SITL_PORT_5:-5810}/tcp"
+      - "${SITL_PORT_6:-5820}:${SITL_PORT_6:-5820}/tcp"
+      - "${SITL_PORT_7:-5830}:${SITL_PORT_7:-5830}/tcp"
+      - "${SITL_PORT_8:-5840}:${SITL_PORT_8:-5840}/tcp"
+      - "${SITL_PORT_9:-5850}:${SITL_PORT_9:-5850}/tcp"
+      - "${SITL_PORT_10:-5860}:${SITL_PORT_10:-5860}/tcp"
+      - "${SITL_PORT_11:-5870}:${SITL_PORT_11:-5870}/tcp"
+      - "${SITL_PORT_12:-5880}:${SITL_PORT_12:-5880}/tcp"
+      - "${SITL_PORT_13:-5890}:${SITL_PORT_13:-5890}/tcp"
+      - "${SITL_PORT_14:-5900}:${SITL_PORT_14:-5900}/tcp"
+      - "${SITL_PORT_15:-5910}:${SITL_PORT_15:-5910}/tcp"
+      - "${SITL_PORT_16:-5920}:${SITL_PORT_16:-5920}/tcp"
+      - "${SITL_PORT_17:-5930}:${SITL_PORT_17:-5930}/tcp"
+      - "${SITL_PORT_18:-5940}:${SITL_PORT_18:-5940}/tcp"
+      - "${SITL_PORT_19:-5950}:${SITL_PORT_19:-5950}/tcp"
     volumes:
-      - ./logs:/ardupilot/logs
+      - ${SITL_LOG_DIR:-./logs/1}:/ardupilot/logs
       - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./locations.txt:/root/ardupilot/Tools/autotest/locations.txt:ro
       - ~/waypoints:/root/waypoints:ro
     environment:
+      - SITL_INSTANCE=${SITL_INSTANCE:-1}
       - SITL_VEHICLE=${SITL_VEHICLE:-ArduPlane}
       - SITL_FRAME=${SITL_FRAME:-plane}
       - SWARM_MODE=${SWARM_MODE:-false}
@@ -39,6 +39,9 @@ services:
       - SITL_LOCATION=${SITL_LOCATION:-MAVPROXY_USGS1M}
       - SITL_WIPE=${SITL_WIPE:-false}
       - SITL_SPEEDUP=${SITL_SPEEDUP:-1}
+      - SITL_PORT_BASE=${SITL_PORT_BASE:-5760}
+      - SITL_INSTANCE_OFFSET=${SITL_INSTANCE_OFFSET:-0}
+      - SITL_SYSID_BASE=${SITL_SYSID_BASE:-1}
     entrypoint: ["/bin/bash", "/docker-entrypoint.sh"]
     restart: "no"
     stdin_open: true

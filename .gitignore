@@ -4,6 +4,9 @@ eeprom.bin
 *.bin
 *.log
 
+# Python tests
+__pycache__/
+
 # macOS
 .DS_Store
 
