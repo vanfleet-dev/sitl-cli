@@ -56,7 +56,6 @@ Vehicles:
   copter-hexa      ArduCopter, hexa frame
   copter-octa      ArduCopter, octa frame
   copter-tri       ArduCopter, tri frame
-  copter-heli      ArduCopter, heli frame
   rover            Rover
   rover-skid       Rover, skid-steering frame
 
@@ -223,10 +222,6 @@ select_vehicle() {
             SITL_VEHICLE="ArduCopter"
             SITL_FRAME="tri"
             ;;
-        copter-heli|heli)
-            SITL_VEHICLE="ArduCopter"
-            SITL_FRAME="heli"
-            ;;
         rover)
             SITL_VEHICLE="Rover"
             SITL_FRAME="rover"
@@ -303,6 +298,13 @@ parse_start_options() {
     done
 }
 
+validate_start_configuration() {
+    if [ "$SITL_VEHICLE" = "ArduCopter" ] && [ "$SITL_FRAME" = "heli" ]; then
+        log_error "Frame heli is unavailable: the pinned image lacks arducopter-heli."
+        exit 1
+    fi
+}
+
 print_endpoints() {
     local count="$1"
     local index=0
@@ -322,6 +324,7 @@ start_instance() {
     configure_instance "$instance"
     select_vehicle "$vehicle_name"
     parse_start_options "$@"
+    validate_start_configuration
     check_docker
     acquire_start_lock
 

@@ -76,57 +76,34 @@ printf 'SYSIDs: %s..%s\n' "$SITL_SYSID_BASE" "$((SITL_SYSID_BASE + vehicle_count
 printf 'TCP ports: %s..%s (increments of 10)\n' "$SITL_PORT_BASE" "$((SITL_PORT_BASE + (vehicle_count - 1) * 10))"
 printf '%s\n' "========================================="
 
-cd /root/ardupilot
+ARDUPILOT_ROOT=${ARDUPILOT_ROOT:-/root/ardupilot}
+SITL_STATE_DIR=${SITL_STATE_DIR:-$ARDUPILOT_ROOT/logs/$SITL_VEHICLE-$SITL_FRAME}
+sim_vehicle="$ARDUPILOT_ROOT/Tools/autotest/sim_vehicle.py"
+if [ ! -x "$sim_vehicle" ]; then
+    echo "sim_vehicle.py is not executable: $sim_vehicle" >&2
+    exit 2
+fi
+
+cd "$ARDUPILOT_ROOT"
+
+sim_args=(
+    -v "$SITL_VEHICLE"
+    -f "$SITL_FRAME"
+    -I "$SITL_INSTANCE_OFFSET"
+    --no-mavproxy
+    --no-rebuild
+    --location "$SITL_LOCATION"
+    --use-dir "$SITL_STATE_DIR"
+)
 
 if [ "$SWARM_MODE" = true ]; then
-    exec ./Tools/autotest/sim_vehicle.py \
-        -v "$SITL_VEHICLE" \
-        -f "$SITL_FRAME" \
-        -I "$SITL_INSTANCE_OFFSET" \
-        --no-mavproxy \
-        --no-rebuild \
-        --count "$SWARM_COUNT" \
-        --auto-sysid \
-        --location "$SITL_LOCATION" \
-        --auto-offset-line "$OFFSET_LINE" \
-        "${runtime_args[@]}"
+    sim_args+=(
+        --count "$SWARM_COUNT"
+        --auto-sysid
+        --auto-offset-line "$OFFSET_LINE"
+    )
+else
+    sim_args+=(--sysid "$SITL_SYSID_BASE")
 fi
 
-case "$SITL_VEHICLE" in
-    ArduPlane) binary=/root/ardupilot/build/sitl/bin/arduplane ;;
-    ArduCopter) binary=/root/ardupilot/build/sitl/bin/arducopter ;;
-    Rover) binary=/root/ardupilot/build/sitl/bin/ardurover ;;
-    *) binary="" ;;
-esac
-
-home_coords=""
-if [ -f /root/ardupilot/Tools/autotest/locations.txt ]; then
-    while IFS='=' read -r name coordinates; do
-        if [ "$name" = "$SITL_LOCATION" ]; then
-            home_coords=${coordinates%%#*}
-            break
-        fi
-    done < /root/ardupilot/Tools/autotest/locations.txt
-fi
-
-if [ -n "$binary" ] && [ -f "$binary" ]; then
-    binary_args=(-S -I "$SITL_INSTANCE_OFFSET" --sysid "$SITL_SYSID_BASE" --model "$SITL_FRAME")
-    if [ -n "$home_coords" ]; then
-        binary_args+=(--home "$home_coords")
-    fi
-    defaults_file="/root/ardupilot/Tools/autotest/default_params/$SITL_FRAME.parm"
-    if [ -f "$defaults_file" ]; then
-        binary_args+=(--defaults "$defaults_file")
-    fi
-    exec "$binary" "${binary_args[@]}" "${runtime_args[@]}"
-fi
-
-echo "Prebuilt binary unavailable; falling back to sim_vehicle.py"
-exec ./Tools/autotest/sim_vehicle.py \
-    -v "$SITL_VEHICLE" \
-    -f "$SITL_FRAME" \
-    -I "$SITL_INSTANCE_OFFSET" \
-    --sysid "$SITL_SYSID_BASE" \
-    --no-mavproxy \
-    --location "$SITL_LOCATION" \
-    "${runtime_args[@]}"
+exec "$sim_vehicle" "${sim_args[@]}" "${runtime_args[@]}"

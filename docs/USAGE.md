@@ -84,9 +84,10 @@ Logs follow the selected container. Shell requires the selected instance to be r
 | `copter-hexa` | ArduCopter | `hexa` |
 | `copter-octa` | ArduCopter | `octa` |
 | `copter-tri` | ArduCopter | `tri` |
-| `copter-heli` | ArduCopter | `heli` |
 | `rover` | Rover | `rover` |
 | `rover-skid` | Rover | `rover-skid` |
+
+Helicopter is not available in the pinned image because ArduPilot requires a separate `arducopter-heli` binary that the image does not contain.
 
 Override a frame only when ArduPilot supports it:
 
@@ -103,7 +104,7 @@ sitlctl start 1 copter --frame dodeca-hexa
 - ArduPilot instance offsets: `0..19`
 - SYSIDs: `1..20`
 - TCP ports: `5760, 5770, ... 5950`
-- logs: `~/bin/logs/1`
+- state root: `~/bin/logs/1`
 
 ### Instance 2
 
@@ -112,9 +113,9 @@ sitlctl start 1 copter --frame dodeca-hexa
 - ArduPilot instance offsets: `20..39`
 - SYSIDs: `21..40`
 - TCP ports: `5960, 5970, ... 6150`
-- logs: `~/bin/logs/2`
+- state root: `~/bin/logs/2`
 
-The fixed ranges prevent cross-container port and SYSID collisions without hidden runtime allocation.
+The fixed ranges prevent cross-container port and SYSID collisions without hidden runtime allocation. Persistent state is stored below each root in a vehicle/frame directory such as `ArduPlane-plane` or `Rover-rover-skid`; swarms then use ArduPilot instance-offset subdirectories. `sitlctl logs` reads the selected container's Docker output instead of these state files.
 
 ## Swarms
 
