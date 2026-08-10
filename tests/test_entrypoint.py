@@ -87,6 +87,18 @@ class EntrypointTests(unittest.TestCase):
         )
         self.assertNotIn(":/ardupilot/logs", compose)
 
+    def test_compose_publishes_all_mavlink_ports_on_loopback_only(self):
+        compose = COMPOSE.read_text()
+        published_ports = [
+            line.strip()
+            for line in compose.splitlines()
+            if "SITL_PORT_" in line and "/tcp" in line
+        ]
+
+        self.assertEqual(len(published_ports), 20)
+        for line in published_ports:
+            self.assertTrue(line.startswith('- "127.0.0.1:'), line)
+
     def test_single_vehicle_frames_use_sim_vehicle_metadata(self):
         cases = (
             ("ArduPlane", "plane"),
