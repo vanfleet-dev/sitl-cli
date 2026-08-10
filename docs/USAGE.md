@@ -87,7 +87,7 @@ Logs follow the selected container. Shell requires the selected instance to be r
 | `rover` | Rover | `rover` |
 | `rover-skid` | Rover | `rover-skid` |
 
-Helicopter is not available in the pinned image because ArduPilot requires a separate `arducopter-heli` binary that the image does not contain.
+Helicopter is not available in the pinned image because ArduPilot requires a separate `arducopter-heli` binary that the image does not contain. The `heli`, `heli-gas`, `heli-dual`, and `heli-blade360` frame overrides fail before Docker startup.
 
 Override a frame only when ArduPilot supports it:
 
