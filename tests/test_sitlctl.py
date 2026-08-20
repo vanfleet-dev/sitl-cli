@@ -24,6 +24,16 @@ def run_compose(compose_args):
     with (state_dir / "compose.calls").open("a") as handle:
         handle.write(" ".join(compose_args) + "\n")
 
+    if os.environ.get("FAKE_COMPOSE_REJECT_PROGRESS_OPTION") == "true":
+        if "--progress" in compose_args:
+            print("unknown option: --progress", file=sys.stderr)
+            raise SystemExit(2)
+
+    if os.environ.get("FAKE_COMPOSE_REQUIRE_PLAIN") == "true":
+        if os.environ.get("COMPOSE_PROGRESS") != "plain":
+            print("interactive progress path did not return", file=sys.stderr)
+            raise SystemExit(124)
+
     if "up" in compose_args:
         (state_dir / name).write_text("running\n")
         keys = [
@@ -106,6 +116,16 @@ name = os.environ["SITL_CONTAINER_NAME"]
 with (state_dir / "compose.calls").open("a") as handle:
     handle.write(" ".join(args) + "\n")
 
+if os.environ.get("FAKE_COMPOSE_REJECT_PROGRESS_OPTION") == "true":
+    if "--progress" in args:
+        print("unknown option: --progress", file=sys.stderr)
+        raise SystemExit(2)
+
+if os.environ.get("FAKE_COMPOSE_REQUIRE_PLAIN") == "true":
+    if os.environ.get("COMPOSE_PROGRESS") != "plain":
+        print("interactive progress path did not return", file=sys.stderr)
+        raise SystemExit(124)
+
 if "up" in args:
     (state_dir / name).write_text("running\n")
     keys = [
@@ -147,6 +167,7 @@ class SitlctlTests(unittest.TestCase):
                 "FAKE_DOCKER_IMAGE_PRESENT": "true",
                 "SITL_LOG_ROOT": str(self.logs),
                 "SITLCTL_START_WAIT_SECONDS": "0",
+                "TMPDIR": str(self.root),
                 "TERM": "dumb",
             }
         )
@@ -261,6 +282,19 @@ class SitlctlTests(unittest.TestCase):
         self.assertIn("SITL_SPEEDUP=3\n", environment)
         calls = (self.state / "compose.calls").read_text()
         self.assertIn("-p sitlctl-2", calls)
+
+    def test_start_avoids_interactive_progress_without_v2_only_option(self):
+        self.env["FAKE_COMPOSE_REQUIRE_PLAIN"] = "true"
+        self.env["FAKE_COMPOSE_REJECT_PROGRESS_OPTION"] = "true"
+
+        result = self.run_sitlctl("start", "2", "copter", "--swarm", "2")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("MAVLink endpoints:", result.stdout)
+        self.assertIn("SYSID 21", result.stdout)
+        self.assertIn("SYSID 22", result.stdout)
+        calls = (self.state / "compose.calls").read_text()
+        self.assertNotIn("--progress", calls)
 
     def test_stopping_one_instance_preserves_the_other(self):
         for instance, vehicle in (("1", "copter"), ("2", "rover")):

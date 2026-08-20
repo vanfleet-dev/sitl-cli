@@ -382,7 +382,7 @@ start_instance() {
     log_info "Starting instance $SITL_INSTANCE: $SITL_VEHICLE ($SITL_FRAME)"
     (
         cd "$SCRIPT_DIR"
-        "${COMPOSE_COMMAND[@]}" -p "$COMPOSE_PROJECT" -f "$DOCKER_COMPOSE_FILE" up -d
+        COMPOSE_PROGRESS=plain "${COMPOSE_COMMAND[@]}" -p "$COMPOSE_PROJECT" -f "$DOCKER_COMPOSE_FILE" up -d
     )
 
     sleep "${SITLCTL_START_WAIT_SECONDS:-2}"
