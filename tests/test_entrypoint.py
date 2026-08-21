@@ -177,6 +177,29 @@ class EntrypointTests(unittest.TestCase):
             str(self.state_directory),
         )
 
+    def test_rover_skid_swarm_uses_one_metadata_default_and_absolute_skid_file(self):
+        result, arguments = self.run_entrypoint(
+            "Rover",
+            "rover-skid",
+            SWARM_COUNT="4",
+            SWARM_MODE="true",
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.option_value(arguments, "-f"), "rover")
+        self.assertEqual(self.option_value(arguments, "--model"), "rover-skid")
+        self.assertEqual(
+            self.option_value(arguments, "--add-param-file"),
+            str(
+                self.root
+                / "Tools"
+                / "autotest"
+                / "default_params"
+                / "rover-skid.parm"
+            ),
+        )
+        self.assertEqual(self.option_value(arguments, "--count"), "4")
+
 
 if __name__ == "__main__":
     unittest.main()

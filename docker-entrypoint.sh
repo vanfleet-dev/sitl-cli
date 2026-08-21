@@ -86,9 +86,21 @@ fi
 
 cd "$ARDUPILOT_ROOT"
 
+frame_args=(-f "$SITL_FRAME")
+if [ "$SWARM_MODE" = true ] \
+    && [ "$SITL_VEHICLE" = Rover ] \
+    && [ "$SITL_FRAME" = rover-skid ]; then
+    # sim_vehicle.py mis-prefixes the second default file for counted vehicles.
+    frame_args=(
+        -f rover
+        --model rover-skid
+        --add-param-file "$ARDUPILOT_ROOT/Tools/autotest/default_params/rover-skid.parm"
+    )
+fi
+
 sim_args=(
     -v "$SITL_VEHICLE"
-    -f "$SITL_FRAME"
+    "${frame_args[@]}"
     -I "$SITL_INSTANCE_OFFSET"
     --no-mavproxy
     --no-rebuild
